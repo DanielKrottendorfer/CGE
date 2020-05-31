@@ -83,6 +83,24 @@ void processMouseButtons(int button, int state, int xx, int yy)
     }
 }
 
+void processKeys(unsigned char key, int xx, int yy)
+{
+    switch (key)
+    {
+
+    case 27:
+        glutLeaveMainLoop();
+        break;
+
+    case 'c':
+        printf("Camera Spherical Coordinates (%f, %f, %f)\n", alpha, beta, r);
+        break;
+    }
+
+    //  uncomment this if not using an idle func
+    //	glutPostRedisplay();
+}
+
 void processMouseMotion(int xx, int yy)
 {
 
@@ -222,6 +240,23 @@ void renderScene(void)
     glutSwapBuffers();
 }
 
+void mouseWheel(int wheel, int direction, int x, int y)
+{
+
+    r += direction * 0.1f;
+    if (r < 0.1f)
+        r = 0.1f;
+
+    camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    camY = r * sin(beta * 3.14f / 180.0f);
+
+    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    //  uncomment this if not using an idle func
+    //	glutPostRedisplay();
+}
+
 // ------------------------------------------------------------
 //
 // Main function
@@ -248,12 +283,11 @@ int main(int argc, char **argv)
     glutIdleFunc(renderScene);
 
     //	Mouse and Keyboard Callbacks
-    /*
     glutKeyboardFunc(processKeys);
-    glutMouseWheelFunc(mouseWheel);
-    */
     glutMouseFunc(processMouseButtons);
     glutMotionFunc(processMouseMotion);
+
+    glutMouseWheelFunc(mouseWheel);
     //	return from main loop
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
