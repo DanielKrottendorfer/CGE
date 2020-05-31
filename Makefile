@@ -22,7 +22,7 @@ run:
 	$(TARGET).exe
 
 clean:
-	rd /s /q ".\build"
+	if exist ".\build" rd /s /q ".\build"
 
 create_dir: 
 	if not exist ".\build" mkdir .\build
