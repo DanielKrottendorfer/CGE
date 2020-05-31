@@ -5,21 +5,21 @@ OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 INCLUDE  := -I include
 LDFLAGS  := -L lib -lglew32 -lfreeglut -lopengl32
-DEMO      := $(wildcard ./demo/*.cpp)
+DEMO      := $(wildcard ./src/*.cpp)
 TARGET   := program
 
-all: create_dir build_demo run
+all: clean create_dir build_demo run
 
-build_demo: $(APP_DIR)/$(TARGET)
+build_demo: $(TARGET)
 	
-$(APP_DIR)/$(TARGET): $(DEMO) 
-	$(CXX) $(CXXFLAGS) -o $(APP_DIR)/$(TARGET) $(wildcard ./build/objects/*.o) $(LDFLAGS)
+$(TARGET): $(DEMO) 
+	$(CXX) $(CXXFLAGS) -o $@ $(wildcard ./build/objects/*.o) $(LDFLAGS)
 
 $(DEMO): $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $@ -o $</$(notdir $(basename $@)).o  $(LDFLAGS)
 
 run:
-	$(APP_DIR)/$(TARGET).exe
+	$(TARGET).exe
 
 clean:
 	rd /s /q ".\build"
