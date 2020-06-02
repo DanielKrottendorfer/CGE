@@ -16,7 +16,10 @@
 #include "vsShaderLib.h"
 #include "shaderDemo.h"
 
+#include "PlainGenerator.hpp"
+
 VSShaderLib shader;
+VSShaderLib another_shader;
 
 // Camera Position
 float camX, camY, camZ;
@@ -25,7 +28,7 @@ float camX, camY, camZ;
 int startX, startY, tracking = 0;
 
 // Camera Spherical Coordinates
-float alpha = -43.0f, beta = 48.0f;
+float alpha = -143.0f, beta = 28.0f;
 float r = 5.25f;
 
 // Frame counting and FPS computation
@@ -33,10 +36,13 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 glm::mat4 *pvm = new glm::mat4();
+glm::mat4 *another_pvm = new glm::mat4();
 
 GLuint vao;
+GLuint another_vao;
 
-glm::mat4 perspective, view;
+int another_facecount;
+glm::mat4 pers, view;
 
 void changeSize(int w, int h)
 {
@@ -49,7 +55,7 @@ void changeSize(int w, int h)
     glViewport(0, 0, w, h);
     // set the projection matrix
     ratio = (1.0f * w) / h;
-    perspective = glm::perspective(glm::radians(53.13f), ratio, 0.1f, 1000.f);
+    pers = glm::perspective(glm::radians(53.13f), ratio, 0.1f, 1000.f);
 }
 
 void processMouseButtons(int button, int state, int xx, int yy)
@@ -138,8 +144,7 @@ void processMouseMotion(int xx, int yy)
     camX = rAux * sin(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
     camZ = rAux * cos(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
     camY = rAux * sin(betaAux * 3.14f / 180.0f);
-    std::cout << " " << camX << " " << camY << " " << camZ << " " << std::endl;
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     //  uncomment this if not using an idle func
     //	glutPostRedisplay();
@@ -165,6 +170,28 @@ GLuint setupShaders()
 
     printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
 
+    another_shader.init();
+    another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
+    another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
+
+    // set semantics for the shader variables
+    another_shader.setProgramOutput(0, "outputF");
+    another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+    another_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "color");
+
+    another_shader.prepareProgram();
+
+    another_shader.setUniform("another_pvm", pvm);
+    if (!another_shader.isProgramValid())
+    {
+        std::cout << "--------------------" << std::endl;
+    }
+    else
+    {
+
+        std::cout << "++++++++++++++++++++" << std::endl;
+    }
+
     return (shader.isProgramValid());
 }
 
@@ -179,11 +206,11 @@ void initOpenGL()
     camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
     camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
     camY = r * sin(beta * 3.14f / 180.0f);
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // some GL settings
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -219,6 +246,10 @@ void initOpenGL()
 
     // unbind the VAO
     glBindVertexArray(0);
+
+    another_facecount = generateHills(&another_vao);
+
+    std::cout << another_facecount << "--------------------" << another_vao << std::endl;
 }
 
 void renderScene(void)
@@ -229,13 +260,19 @@ void renderScene(void)
     // use our shader
     glUseProgram(shader.getProgramIndex());
 
-    *pvm = (perspective * view);
+    *pvm = (pers * view);
 
     shader.setUniform("pvm", pvm);
     // send matrices to uniform buffer
     // render VAO
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, 0);
+
+    glUseProgram(another_shader.getProgramIndex());
+
+    another_shader.setUniform("pvm", pvm);
+    glBindVertexArray(another_vao);
+    glDrawElements(GL_TRIANGLES, another_facecount * 3, GL_UNSIGNED_INT, 0);
     //swap buffers
     glutSwapBuffers();
 }
@@ -251,7 +288,7 @@ void mouseWheel(int wheel, int direction, int x, int y)
     camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
     camY = r * sin(beta * 3.14f / 180.0f);
 
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     //  uncomment this if not using an idle func
     //	glutPostRedisplay();
@@ -274,7 +311,7 @@ int main(int argc, char **argv)
     glutInitContextFlags(GLUT_DEBUG);
 
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(512, 512);
+    glutInitWindowSize(800, 800);
     glutCreateWindow("Lighthouse3D - Simple Shader Demo");
 
     //  Callback Registration
