@@ -20,6 +20,7 @@
 
 VSShaderLib shader;
 VSShaderLib another_shader;
+VSShaderLib jet_another_shader;
 
 // Camera Position
 float camX, camY, camZ;
@@ -42,7 +43,9 @@ GLuint vao;
 GLuint another_vao;
 
 int another_facecount;
-glm::mat4 pers, view;
+glm::mat4 pers, view, model;
+
+glm::vec3 light_pos = vec3(10.0, 5.0, 10.0);
 
 void changeSize(int w, int h)
 {
@@ -183,14 +186,22 @@ GLuint setupShaders()
     another_shader.prepareProgram();
 
     another_shader.setUniform("another_pvm", pvm);
-    if (!another_shader.isProgramValid())
-    {
-        std::cout << "--------------------" << std::endl;
-    }
-    else
-    {
 
-        std::cout << "++++++++++++++++++++" << std::endl;
+    jet_another_shader.init();
+    jet_another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardShading.vert");
+    jet_another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardShading.frag");
+
+    // set semantics for the shader variables
+    jet_another_shader.setProgramOutput(0, "outputF");
+    jet_another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
+    jet_another_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
+    jet_another_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "vertexColor");
+
+    jet_another_shader.prepareProgram();
+
+    if (jet_another_shader.isProgramValid())
+    {
+        std::cout << "#####################" << jet_another_shader.getProgramIndex() << std::endl;
     }
 
     return (shader.isProgramValid());
@@ -269,9 +280,12 @@ void renderScene(void)
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, 0);
 
-    glUseProgram(another_shader.getProgramIndex());
+    glUseProgram(jet_another_shader.getProgramIndex());
 
-    another_shader.setUniform("pvm", pvm);
+    jet_another_shader.setUniform("PVM", pvm);
+    jet_another_shader.setUniform("M", &model);
+    jet_another_shader.setUniform("V", &view);
+    jet_another_shader.setUniform("LightPosition_worldspace", &light_pos);
     glBindVertexArray(another_vao);
     glDrawArrays(GL_TRIANGLES, 0, another_facecount * 3);
     //swap buffers
@@ -303,6 +317,7 @@ void mouseWheel(int wheel, int direction, int x, int y)
 int main(int argc, char **argv)
 {
 
+    model = mat4(1.0);
     //  GLUT initialization
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);

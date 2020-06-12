@@ -58,20 +58,20 @@ int *generateTriangles(int columns, int rows)
     return triangels;
 }
 
-vec4 colorlerp(float c)
+vec3 colorlerp(float c)
 {
-    vec4 color;
+    vec3 color;
     if (c < 0.3)
     {
-        color = vec4(0.0, 1.0, 0.0, 1.0);
+        color = vec3(0.0, 1.0, 0.0);
     }
     else if (c < 0.8)
     {
-        color = vec4(0.5, 0.5, 0.5, 1.0);
+        color = vec3(0.5, 0.5, 0.5);
     }
     else
     {
-        color = vec4(0.9, 0.9, 0.9, 1.0);
+        color = vec3(0.9, 0.9, 0.9);
     }
     return color;
 }
@@ -93,7 +93,7 @@ GLuint generateHills(GLuint *vao)
 
     vec4 *verts = new vec4[vertC];
     vec4 *normals = new vec4[vertC];
-    vec4 *rgbs = new vec4[vertC];
+    vec3 *rgbs = new vec3[vertC];
 
     for (int i = 0; i < vertC; i += 3)
     {
@@ -105,9 +105,9 @@ GLuint generateHills(GLuint *vao)
         vec4 vertb = plain[b];
         vec4 vertc = plain[c];
 
-        vec4 rgba = colorlerp(verta.y);
-        vec4 rgbb = colorlerp(vertb.y);
-        vec4 rgbc = colorlerp(vertc.y);
+        vec3 rgba = colorlerp(verta.y);
+        vec3 rgbb = colorlerp(vertb.y);
+        vec3 rgbc = colorlerp(vertc.y);
 
         vec3 vertab = vec3(verta - vertb);
         vec3 vertac = vec3(verta - vertc);
@@ -116,7 +116,7 @@ GLuint generateHills(GLuint *vao)
         if (vn.y < 0.0)
             vn *= -1;
 
-        vec4 vnorm = vec4(vn, 1.0);
+        vec4 vnorm = vec4(vn, 0.0);
 
         verts[i] = verta;
         verts[i + 1] = vertb;
@@ -152,9 +152,9 @@ GLuint generateHills(GLuint *vao)
     glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * vertC, rgbs, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * vertC, rgbs, GL_STATIC_DRAW);
     glEnableVertexAttribArray(VSShaderLib::VERTEX_ATTRIB1);
-    glVertexAttribPointer(VSShaderLib::VERTEX_ATTRIB1, 4, GL_FLOAT, 0, 0, 0);
+    glVertexAttribPointer(VSShaderLib::VERTEX_ATTRIB1, 3, GL_FLOAT, 0, 0, 0);
 
     // unbind the VAO
     glBindVertexArray(0);
