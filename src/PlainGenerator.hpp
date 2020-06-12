@@ -14,14 +14,16 @@ using namespace glm;
 
 vec4 *generate3dPlain(float width, float height, int columns, int rows)
 {
-    Noisegenerator2d ng = Noisegenerator2d(5, 5, 42069);
+    Noisegenerator2d ng = Noisegenerator2d(5, 5, 123);
     vec4 *plain = new vec4[columns * rows];
     for (int i = 0; i < columns * rows; i++)
     {
         float tx = width * (float)(i % columns) / ((float)columns - 1);
         float tz = height * (float)(i / columns) / ((float)rows - 1);
         float ty = ng.perlin((tx / width) * 3.0f, (tz / height) * 3.0f);
-        plain[i] = vec4(tx, ty * 2.0, tz, 1.0);
+        ty *= 3;
+        ty *= ty;
+        plain[i] = vec4(tx, ty, tz, 1.0);
     }
     return plain;
 }
@@ -56,11 +58,11 @@ int *generateTriangles(int columns, int rows)
 
 GLuint generateHills(GLuint *vao)
 {
-    float width = 10.0;
-    float height = 10.0;
+    float width = 20.0;
+    float height = 20.0;
 
-    int columns = 50;
-    int rows = 50;
+    int columns = 20;
+    int rows = 20;
 
     int faceC = ((columns - 1) * (rows - 1)) * 2;
 
@@ -71,7 +73,7 @@ GLuint generateHills(GLuint *vao)
     {
         for (int j = 0; j < columns; j++)
         {
-            vec4 v = plain[(columns * i) + j];
+            vec4 v = plain[(columns * i) + j] / 2.0f;
             // std::cout << v.y << " $$ ";
             colors[(columns * i) + j] = vec4(v.y, v.y, v.y, 1.0f);
         }
