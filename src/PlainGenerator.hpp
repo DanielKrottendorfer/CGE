@@ -7,22 +7,24 @@
 #include <GL/glew.h>
 
 #include "Noisegenerator2d.hpp"
-#include "glm/vec4.hpp"
+#include "glm/glm.hpp"
 #include "vsShaderLib.h"
 
 using namespace glm;
 
 vec4 *generate3dPlain(float width, float height, int columns, int rows)
 {
-    Noisegenerator2d ng = Noisegenerator2d(5, 5, 123);
+    int a = 7;
+    int b = 7;
+    Noisegenerator2d ng = Noisegenerator2d(a, b, 4123);
     vec4 *plain = new vec4[columns * rows];
     for (int i = 0; i < columns * rows; i++)
     {
         float tx = width * (float)(i % columns) / ((float)columns - 1);
         float tz = height * (float)(i / columns) / ((float)rows - 1);
-        float ty = ng.perlin((tx / width) * 3.0f, (tz / height) * 3.0f);
-        ty *= 3;
+        float ty = ng.perlin((tx / width) * (a - 1.1f), (tz / height) * (b - 1.1f));
         ty *= ty;
+        ty *= 5.0;
         plain[i] = vec4(tx, ty, tz, 1.0);
     }
     return plain;
@@ -56,29 +58,79 @@ int *generateTriangles(int columns, int rows)
     return triangels;
 }
 
+vec4 colorlerp(float c)
+{
+    vec4 color;
+    if (c < 0.3)
+    {
+        color = vec4(0.0, 1.0, 0.0, 1.0);
+    }
+    else if (c < 0.8)
+    {
+        color = vec4(0.5, 0.5, 0.5, 1.0);
+    }
+    else
+    {
+        color = vec4(0.9, 0.9, 0.9, 1.0);
+    }
+    return color;
+}
+
 GLuint generateHills(GLuint *vao)
 {
     float width = 20.0;
     float height = 20.0;
 
-    int columns = 20;
-    int rows = 20;
+    int columns = 300;
+    int rows = 300;
 
     int faceC = ((columns - 1) * (rows - 1)) * 2;
+    int vertC = faceC * 3;
 
     vec4 *plain = generate3dPlain(width, height, columns, rows);
     vec4 *colors = new vec4[columns * rows];
     int *triangles = generateTriangles(columns, rows);
-    for (int i = 0; i < rows; i++)
+
+    vec4 *verts = new vec4[vertC];
+    vec4 *normals = new vec4[vertC];
+    vec4 *rgbs = new vec4[vertC];
+
+    for (int i = 0; i < vertC; i += 3)
     {
-        for (int j = 0; j < columns; j++)
-        {
-            vec4 v = plain[(columns * i) + j] / 2.0f;
-            // std::cout << v.y << " $$ ";
-            colors[(columns * i) + j] = vec4(v.y, v.y, v.y, 1.0f);
-        }
-        // std::cout << std::endl;
+        int a = triangles[i];
+        int b = triangles[i + 1];
+        int c = triangles[i + 2];
+
+        vec4 verta = plain[a];
+        vec4 vertb = plain[b];
+        vec4 vertc = plain[c];
+
+        vec4 rgba = colorlerp(verta.y);
+        vec4 rgbb = colorlerp(vertb.y);
+        vec4 rgbc = colorlerp(vertc.y);
+
+        vec3 vertab = vec3(verta - vertb);
+        vec3 vertac = vec3(verta - vertc);
+
+        vec3 vn = normalize(cross(vertab, vertac));
+        if (vn.y < 0.0)
+            vn *= -1;
+
+        vec4 vnorm = vec4(vn, 1.0);
+
+        verts[i] = verta;
+        verts[i + 1] = vertb;
+        verts[i + 2] = vertc;
+
+        normals[i] = vnorm;
+        normals[i + 1] = vnorm;
+        normals[i + 2] = vnorm;
+
+        rgbs[i] = rgba * 0.5f;
+        rgbs[i + 1] = rgbb * 0.5f;
+        rgbs[i + 2] = rgbc * 0.5f;
     }
+
     *vao = 0;
     // create the VAO
     glGenVertexArrays(1, vao);
@@ -90,20 +142,19 @@ GLuint generateHills(GLuint *vao)
 
     //vertex coordinates buffer
     glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * columns * rows, plain, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * vertC, verts, GL_STATIC_DRAW);
     glEnableVertexAttribArray(VSShaderLib::VERTEX_COORD_ATTRIB);
     glVertexAttribPointer(VSShaderLib::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * columns * rows, colors, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * vertC, normals, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(VSShaderLib::NORMAL_ATTRIB);
+    glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * vertC, rgbs, GL_STATIC_DRAW);
     glEnableVertexAttribArray(VSShaderLib::VERTEX_ATTRIB1);
     glVertexAttribPointer(VSShaderLib::VERTEX_ATTRIB1, 4, GL_FLOAT, 0, 0, 0);
-
-    //texture coordinates buffer
-    //index buffer
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * faceC * 3, triangles, GL_STATIC_DRAW);
 
     // unbind the VAO
     glBindVertexArray(0);

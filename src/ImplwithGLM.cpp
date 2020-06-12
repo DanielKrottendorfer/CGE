@@ -177,6 +177,7 @@ GLuint setupShaders()
     // set semantics for the shader variables
     another_shader.setProgramOutput(0, "outputF");
     another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+    another_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
     another_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "color");
 
     another_shader.prepareProgram();
@@ -272,7 +273,7 @@ void renderScene(void)
 
     another_shader.setUniform("pvm", pvm);
     glBindVertexArray(another_vao);
-    glDrawElements(GL_TRIANGLES, another_facecount * 3, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, another_facecount * 3);
     //swap buffers
     glutSwapBuffers();
 }
