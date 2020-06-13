@@ -14,17 +14,20 @@ using namespace glm;
 
 vec4 *generate3dPlain(float width, float height, int columns, int rows)
 {
-    int a = 7;
-    int b = 7;
-    Noisegenerator2d ng = Noisegenerator2d(a, b, 4123);
+    int a = 10;
+    int b = 10;
+    Noisegenerator2d ng = Noisegenerator2d(a, b, 2222222);
+    int a1 = 2;
+    int b1 = 2;
+    Noisegenerator2d ng1 = Noisegenerator2d(a1, b1, 111111);
     vec4 *plain = new vec4[columns * rows];
     for (int i = 0; i < columns * rows; i++)
     {
         float tx = width * (float)(i % columns) / ((float)columns - 1);
         float tz = height * (float)(i / columns) / ((float)rows - 1);
-        float ty = ng.perlin((tx / width) * (a - 1.1f), (tz / height) * (b - 1.1f));
-        ty *= ty;
-        ty *= 5.0;
+        //std::cout << ta << " " << tb << std::endl;
+        float ty = ng.perlin((tx / width) * (((float)a) - 1.001), (tz / height) * (((float)b) - 1.001));
+        ty += ng1.perlin((tx / width) * (((float)a1) - 1.001), (tz / height) * (((float)b1) - 1.001)) * 2.0;
         plain[i] = vec4(tx, ty, tz, 1.0);
     }
     return plain;
@@ -81,8 +84,8 @@ GLuint generateHills(GLuint *vao)
     float width = 20.0;
     float height = 20.0;
 
-    int columns = 300;
-    int rows = 300;
+    int columns = 50;
+    int rows = 50;
 
     int faceC = ((columns - 1) * (rows - 1)) * 2;
     int vertC = faceC * 3;
