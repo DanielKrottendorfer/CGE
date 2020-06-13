@@ -13,10 +13,12 @@
 #include <glm/mat4x4.hpp>               // glm::mat4
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
+#include "PlainGenerator.hpp"
+#include "Mesh.hpp"
+
 #include "vsShaderLib.h"
 #include "shaderDemo.h"
 
-#include "PlainGenerator.hpp"
 
 VSShaderLib shader;
 VSShaderLib another_shader;
@@ -46,6 +48,9 @@ int another_facecount;
 glm::mat4 pers, view, model;
 
 glm::vec3 light_pos = vec3(10.0, 5.0, 10.0);
+
+// mesh vector for many meshes
+std::vector<Mesh*>meshes;
 
 void changeSize(int w, int h)
 {
@@ -207,6 +212,18 @@ GLuint setupShaders()
     return (shader.isProgramValid());
 }
 
+initModels(const char * path)
+{
+  meshes.push_back(
+  new Mesh(path,
+    glm::vec4(1.f, 0.f, 0.f, 0.f),
+    glm::vec4(0.f),
+    glm::vec4(0.f),
+    glm::vec4(1.f)
+  )
+);
+}
+
 // ------------------------------------------------------------
 //
 // Model loading and OpenGL setup
@@ -282,6 +299,12 @@ void renderScene(void)
 
     glUseProgram(jet_another_shader.getProgramIndex());
 
+    // draws the mesh
+    for(auto const& value: meshes)
+    {
+      value->drawStuff();
+    }
+
     jet_another_shader.setUniform("PVM", pvm);
     jet_another_shader.setUniform("M", &model);
     jet_another_shader.setUniform("V", &view);
@@ -356,6 +379,7 @@ int main(int argc, char **argv)
     if (!setupShaders())
         return (1);
 
+    initModels("cube.obj");
     initOpenGL();
 
     //initVSL();
