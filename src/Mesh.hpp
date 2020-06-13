@@ -19,6 +19,8 @@ private:
   unsigned nrOfTriangles;
   Vertex *vertexArray = new Vertex;
 
+  TransformationData tester;
+
   glm::vec3 position;
   glm::vec3 origin;
   glm::vec3 rotation;
@@ -48,25 +50,18 @@ private:
     glGenBuffers(1, &normalbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
     glBufferData(GL_ARRAY_BUFFER, counter * sizeof(glm::vec4) * 3, &vertexArray->normals[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(VSShaderLib::NORMAL_ATTRIB);
+    glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
 
     GLuint uvbuffer;
     glGenBuffers(1, &uvbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferData(GL_ARRAY_BUFFER, counter * sizeof(glm::vec2) * 3, &vertexArray->uvs[0], GL_STATIC_DRAW);
-    glBindVertexArray(0);
-  }
+    glEnableVertexAttribArray(VSShaderLib::TEXTURE_COORD_ATTRIB);
+    glVertexAttribPointer(VSShaderLib::TEXTURE_COORD_ATTRIB, 2, GL_FLOAT, 0, 0, 0);
 
-  void updateModelMatrix()
-  {
-    /* to do
-    this->ModelMatrix = glm::mat4(1.f);
-    this->ModelMatrix = glm::translate(this->ModelMatrix, this->origin);
-    this->ModelMatrix = glm::rotate(this->ModelMatrix, glm::radians(this->rotation.x), glm::vec3(1.f, 0.f, 0.f));
-    this->ModelMatrix = glm::rotate(this->ModelMatrix, glm::radians(this->rotation.y), glm::vec3(0.f, 1.f, 0.f));
-    this->ModelMatrix = glm::rotate(this->ModelMatrix, glm::radians(this->rotation.z), glm::vec3(0.f, 0.f, 1.f));
-    this->ModelMatrix = glm::translate(this->ModelMatrix, this->position - this->origin);
-    this->ModelMatrix = glm::scale(this->ModelMatrix, this->scale);
-    */
+
+    glBindVertexArray(0);
   }
 
 public:
@@ -82,7 +77,6 @@ public:
       this->scale = scale;
       this->nrOfTriangles = loadObject(path);
       initVao(nrOfTriangles);
-      updateModelMatrix();
   }
 
   ~Mesh()
@@ -93,7 +87,7 @@ public:
   void drawStuff()
   {
     glBindVertexArray(this->vao);
-    glDrawArrays(GL_TRIANGLES, 0, this->nrOfTriangles * 3);
+    glDrawArrays(GL_TRIANGLES, 0, this->nrOfTriangles * 3 *5);
     glBindVertexArray(0);
   }
 

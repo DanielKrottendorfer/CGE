@@ -12,6 +12,7 @@
 #include <glm/vec4.hpp>                 // glm::vec4
 #include <glm/mat4x4.hpp>               // glm::mat4
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
+#include "texture.hpp"
 
 #include "PlainGenerator.hpp"
 #include "Mesh.hpp"
@@ -51,6 +52,14 @@ glm::vec3 light_pos = vec3(10.0, 5.0, 10.0);
 
 // mesh vector for many meshes
 std::vector<Mesh*>meshes;
+
+const void* buffer;
+
+GLuint textureID;
+
+TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree;
+
+GLuint texture = loadBMP_custom("test.bmp");
 
 void changeSize(int w, int h)
 {
@@ -182,11 +191,12 @@ GLuint setupShaders()
     another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
     another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
 
+
     // set semantics for the shader variables
     another_shader.setProgramOutput(0, "outputF");
     another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
     another_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
-    another_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "color");
+    another_shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "uvs");
 
     another_shader.prepareProgram();
 
@@ -215,13 +225,13 @@ GLuint setupShaders()
 initModels(const char * path)
 {
   meshes.push_back(
-  new Mesh(path,
-    glm::vec4(1.f, 0.f, 0.f, 0.f),
-    glm::vec4(0.f),
-    glm::vec4(0.f),
-    glm::vec4(1.f)
-  )
-);
+    new Mesh(path,
+      glm::vec4(1.f, 0.f, 0.f, 0.f),
+      glm::vec4(0.f),
+      glm::vec4(0.f),
+      glm::vec4(1.f)
+    )
+  );
 }
 
 // ------------------------------------------------------------
@@ -279,6 +289,14 @@ void initOpenGL()
     another_facecount = generateHills(&another_vao);
 
     std::cout << another_facecount << "--------------------" << another_vao << std::endl;
+
+    glGenTextures(1, &textureID);
+
+    // "Bind" the newly created texture : all future texture functions will modify this texture
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Give the image to OpenGL
+    //glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image.get_width(), image.get_height(), 0, GL_BGR, GL_UNSIGNED_BYTE, buffer);
 }
 
 void renderScene(void)
@@ -287,23 +305,43 @@ void renderScene(void)
     // load identity matrices
 
     // use our shader
-    glUseProgram(shader.getProgramIndex());
+    glUseProgram(another_shader.getProgramIndex());
+
+    // draws the mesh
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    another_shader.setUniform("myTextureSampler", 0);
+    for(auto const& value: meshes)
+    {
+      *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
+
+      another_shader.setUniform("pvm", pvm);
+      value->drawStuff();
+
+      *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
+
+      another_shader.setUniform("pvm", pvm);
+      value->drawStuff();
+
+      *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
+
+      another_shader.setUniform("pvm", pvm);
+      value->drawStuff();
+    }
 
     *pvm = (pers * view);
 
     shader.setUniform("pvm", pvm);
+
     // send matrices to uniform buffer
     // render VAO
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, 0);
 
+    glUseProgram(shader.getProgramIndex());
+
     glUseProgram(jet_another_shader.getProgramIndex());
 
-    // draws the mesh
-    for(auto const& value: meshes)
-    {
-      value->drawStuff();
-    }
 
     jet_another_shader.setUniform("PVM", pvm);
     jet_another_shader.setUniform("M", &model);
@@ -339,8 +377,16 @@ void mouseWheel(int wheel, int direction, int x, int y)
 
 int main(int argc, char **argv)
 {
-
     model = mat4(1.0);
+    cubeTransformOne.angle = (2.f);
+    cubeTransformOne.position = vec3(2.f, 3.f, 1.f);
+
+    cubeTransformTwo.angle = (3.f);
+    cubeTransformTwo.position = vec3(20.f, 1.f, 10.f);
+
+    cubeTransformThree.angle = (4.f);
+    cubeTransformThree.position = vec3(2.f, 20.f, 1.f);
+
     //  GLUT initialization
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
