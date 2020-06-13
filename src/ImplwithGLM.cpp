@@ -20,7 +20,6 @@
 #include "vsShaderLib.h"
 #include "shaderDemo.h"
 
-
 VSShaderLib shader;
 VSShaderLib another_shader;
 VSShaderLib jet_another_shader;
@@ -51,15 +50,15 @@ glm::mat4 pers, view, model;
 glm::vec3 light_pos = vec3(10.0, 5.0, 10.0);
 
 // mesh vector for many meshes
-std::vector<Mesh*>meshes;
+std::vector<Mesh *> meshes;
 
-const void* buffer;
+const void *buffer;
 
 GLuint textureID;
 
 TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree;
 
-GLuint texture = loadBMP_custom("test.bmp");
+GLuint texture;
 
 void changeSize(int w, int h)
 {
@@ -191,7 +190,6 @@ GLuint setupShaders()
     another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
     another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
 
-
     // set semantics for the shader variables
     another_shader.setProgramOutput(0, "outputF");
     another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
@@ -222,16 +220,14 @@ GLuint setupShaders()
     return (shader.isProgramValid());
 }
 
-initModels(const char * path)
+initModels(const char *path)
 {
-  meshes.push_back(
-    new Mesh(path,
-      glm::vec4(1.f, 0.f, 0.f, 0.f),
-      glm::vec4(0.f),
-      glm::vec4(0.f),
-      glm::vec4(1.f)
-    )
-  );
+    meshes.push_back(
+        new Mesh(path,
+                 glm::vec4(1.f, 0.f, 0.f, 0.f),
+                 glm::vec4(0.f),
+                 glm::vec4(0.f),
+                 glm::vec4(1.f)));
 }
 
 // ------------------------------------------------------------
@@ -311,22 +307,22 @@ void renderScene(void)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     another_shader.setUniform("myTextureSampler", 0);
-    for(auto const& value: meshes)
+    for (auto const &value : meshes)
     {
-      *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
+        *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
 
-      another_shader.setUniform("pvm", pvm);
-      value->drawStuff();
+        another_shader.setUniform("pvm", pvm);
+        value->drawStuff();
 
-      *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
+        *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
 
-      another_shader.setUniform("pvm", pvm);
-      value->drawStuff();
+        another_shader.setUniform("pvm", pvm);
+        value->drawStuff();
 
-      *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
+        *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
 
-      another_shader.setUniform("pvm", pvm);
-      value->drawStuff();
+        another_shader.setUniform("pvm", pvm);
+        value->drawStuff();
     }
 
     *pvm = (pers * view);
@@ -341,7 +337,6 @@ void renderScene(void)
     glUseProgram(shader.getProgramIndex());
 
     glUseProgram(jet_another_shader.getProgramIndex());
-
 
     jet_another_shader.setUniform("PVM", pvm);
     jet_another_shader.setUniform("M", &model);
@@ -416,6 +411,7 @@ int main(int argc, char **argv)
     //	Init GLEW
     glewExperimental = GL_TRUE;
     glewInit();
+    texture = loadBMP_custom("test.bmp");
 
     printf("Vendor: %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
