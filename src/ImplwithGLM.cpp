@@ -47,7 +47,7 @@ GLuint another_vao;
 int another_facecount;
 glm::mat4 pers, view, model;
 
-glm::vec3 light_pos = vec3(10.0, 5.0, 10.0);
+glm::vec3 light_pos = vec3(10.0, 8.0, 11.0);
 
 // mesh vector for many meshes
 std::vector<Mesh *> meshes;
@@ -56,9 +56,13 @@ const void *buffer;
 
 GLuint textureID;
 
-TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree;
+TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree, cubeTransformFour, sunTransform;
 
-GLuint texture;
+GLuint textureCube, textureSphere;
+
+float mover = 0.0f;
+
+glm::mat4 model_two = glm::mat4(1.0);
 
 void changeSize(int w, int h)
 {
@@ -305,25 +309,43 @@ void renderScene(void)
 
     // draws the mesh
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, textureCube);
     another_shader.setUniform("myTextureSampler", 0);
-    for (auto const &value : meshes)
-    {
-        *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
 
-        another_shader.setUniform("pvm", pvm);
-        value->drawStuff();
+    *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
 
-        *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
+    another_shader.setUniform("pvm", pvm);
+    meshes[0]->drawStuff();
 
-        another_shader.setUniform("pvm", pvm);
-        value->drawStuff();
+    *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
 
-        *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
+    another_shader.setUniform("pvm", pvm);
+    meshes[0]->drawStuff();
 
-        another_shader.setUniform("pvm", pvm);
-        value->drawStuff();
-    }
+    *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
+
+    another_shader.setUniform("pvm", pvm);
+    meshes[0]->drawStuff();
+
+    *pvm = (pers * view * cubeTransformFour.calculateTransformationMatrix());
+
+    another_shader.setUniform("pvm", pvm);
+    meshes[0]->drawStuff();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureSphere);
+    model_two[3][2] = sin(mover) * 20;
+    model_two[3][0] = cos(mover) * 20;
+
+    mat4 trans = sunTransform.calculateTransformationMatrix();
+
+    *pvm = ((pers * view * trans) * model_two);
+
+    another_shader.setUniform("pvm", pvm);
+    meshes[1]->drawStuff();
+
+    model_two[3][2] = sin(mover) * 10;
+    model_two[3][0] = cos(mover) * 10;
 
     *pvm = (pers * view);
 
@@ -331,19 +353,23 @@ void renderScene(void)
 
     // send matrices to uniform buffer
     // render VAO
+    /*
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, 0);
-
+    */
     glUseProgram(shader.getProgramIndex());
 
     glUseProgram(jet_another_shader.getProgramIndex());
 
     jet_another_shader.setUniform("PVM", pvm);
-    jet_another_shader.setUniform("M", &model);
+    jet_another_shader.setUniform("M", &model_two);
     jet_another_shader.setUniform("V", &view);
+    mover += 0.0001f;
     jet_another_shader.setUniform("LightPosition_worldspace", &light_pos);
     glBindVertexArray(another_vao);
     glDrawArrays(GL_TRIANGLES, 0, another_facecount * 3);
+
+    glutPostRedisplay();
     //swap buffers
     glutSwapBuffers();
 }
@@ -373,14 +399,20 @@ void mouseWheel(int wheel, int direction, int x, int y)
 int main(int argc, char **argv)
 {
     model = mat4(1.0);
-    cubeTransformOne.angle = (2.f);
-    cubeTransformOne.position = vec3(2.f, 3.f, 1.f);
+    cubeTransformOne.angle = (0.0f);
+    cubeTransformOne.position = vec3(8.f, 0.f, 1.f);
 
-    cubeTransformTwo.angle = (3.f);
-    cubeTransformTwo.position = vec3(20.f, 1.f, 10.f);
+    cubeTransformTwo.angle = (0.f);
+    cubeTransformTwo.position = vec3(1.f, 0.f, 8.f);
 
-    cubeTransformThree.angle = (4.f);
-    cubeTransformThree.position = vec3(2.f, 20.f, 1.f);
+    cubeTransformThree.angle = (0.f);
+    cubeTransformThree.position = vec3(8.f, 0.f, 8.f);
+
+    cubeTransformFour.angle = (1.568f);
+    cubeTransformFour.position = vec3(1.f, 0.f, 1.f);
+
+    sunTransform.angle = (3.f);
+    sunTransform.position = vec3(10.f, 8.f, 11.f);
 
     //  GLUT initialization
     glutInit(&argc, argv);
@@ -411,7 +443,8 @@ int main(int argc, char **argv)
     //	Init GLEW
     glewExperimental = GL_TRUE;
     glewInit();
-    texture = loadBMP_custom("test.bmp");
+    textureCube = loadBMP_custom("test1.bmp");
+    textureSphere = loadBMP_custom("sun.bmp");
 
     printf("Vendor: %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
@@ -422,6 +455,7 @@ int main(int argc, char **argv)
         return (1);
 
     initModels("cube.obj");
+    initModels("sphere.obj");
     initOpenGL();
 
     //initVSL();
