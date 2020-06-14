@@ -20,9 +20,8 @@
 #include "vsShaderLib.h"
 #include "shaderDemo.h"
 
-VSShaderLib shader;
-VSShaderLib another_shader;
-VSShaderLib jet_another_shader;
+VSShaderLib texture_shader;
+VSShaderLib light_shader;
 
 // Camera Position
 float camX, camY, camZ;
@@ -38,23 +37,18 @@ float r = 5.25f;
 long myTime, timebase = 0, frame = 0;
 char s[32];
 
-glm::mat4 *pvm = new glm::mat4();
+glm::mat4 pvm, pv, pers, view, model;
 glm::mat4 *another_pvm = new glm::mat4();
 
-GLuint vao;
-GLuint another_vao;
+GLuint cube_vao;
+GLuint plain_vao;
 
-int another_facecount;
-glm::mat4 pers, view, model;
+int plain_facecount;
 
 glm::vec3 light_pos = vec3(10.0, 8.0, 11.0);
 
 // mesh vector for many meshes
 std::vector<Mesh *> meshes;
-
-const void *buffer;
-
-GLuint textureID;
 
 TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree, cubeTransformFour, sunTransform;
 
@@ -173,58 +167,41 @@ void processMouseMotion(int xx, int yy)
 GLuint setupShaders()
 {
 
-    // Shader for models
-    shader.init();
-    shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/color.vert");
-    shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/color.frag");
+    texture_shader.init();
+    texture_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
+    texture_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
 
     // set semantics for the shader variables
-    shader.setProgramOutput(0, "outputF");
-    shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+    texture_shader.setProgramOutput(0, "outputF");
+    texture_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
+    texture_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
+    texture_shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "uvs");
 
-    shader.prepareProgram();
+    texture_shader.prepareProgram();
 
-    // this is only useful for the uniform version of the shader
-    float c[4] = {1.0f, 0.8f, 0.2f, 1.0f};
-    shader.setUniform("color", c);
+    texture_shader.setUniform("another_pvm", &pvm);
 
-    printf("InfoLog for Hello World Shader\n%s\n\n", shader.getAllInfoLogs().c_str());
-
-    another_shader.init();
-    another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
-    another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
+    light_shader.init();
+    light_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardShading.vert");
+    light_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardShading.frag");
 
     // set semantics for the shader variables
-    another_shader.setProgramOutput(0, "outputF");
-    another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
-    another_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
-    another_shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "uvs");
+    light_shader.setProgramOutput(0, "outputF");
+    light_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
+    light_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
+    light_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "vertexColor");
 
-    another_shader.prepareProgram();
+    light_shader.prepareProgram();
 
-    another_shader.setUniform("another_pvm", pvm);
-
-    jet_another_shader.init();
-    jet_another_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardShading.vert");
-    jet_another_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardShading.frag");
-
-    // set semantics for the shader variables
-    jet_another_shader.setProgramOutput(0, "outputF");
-    jet_another_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
-    jet_another_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
-    jet_another_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "vertexColor");
-
-    jet_another_shader.prepareProgram();
-
-    if (jet_another_shader.isProgramValid())
+    if (light_shader.isProgramValid())
     {
-        std::cout << "#####################" << jet_another_shader.getProgramIndex() << std::endl;
+        std::cout << "#####################" << light_shader.getProgramIndex() << std::endl;
     }
 
-    return (shader.isProgramValid());
+    return (light_shader.isProgramValid());
 }
 
-initModels(const char *path)
+void initModels(const char *path)
 {
     meshes.push_back(
         new Mesh(path,
@@ -254,8 +231,8 @@ void initOpenGL()
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     // create the VAO
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(1, &cube_vao);
+    glBindVertexArray(cube_vao);
 
     // create buffers for our vertex data
     GLuint buffers[4];
@@ -286,50 +263,46 @@ void initOpenGL()
     // unbind the VAO
     glBindVertexArray(0);
 
-    another_facecount = generateHills(&another_vao);
+    plain_facecount = generateHills(&plain_vao);
 
-    std::cout << another_facecount << "--------------------" << another_vao << std::endl;
-
-    glGenTextures(1, &textureID);
-
-    // "Bind" the newly created texture : all future texture functions will modify this texture
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    // Give the image to OpenGL
-    //glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image.get_width(), image.get_height(), 0, GL_BGR, GL_UNSIGNED_BYTE, buffer);
+    textureCube = loadBMP_custom("test1.bmp");
+    textureSphere = loadBMP_custom("sun.bmp");
 }
 
 void renderScene(void)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
     // load identity matrices
 
     // use our shader
-    glUseProgram(another_shader.getProgramIndex());
+    glUseProgram(texture_shader.getProgramIndex());
 
     // draws the mesh
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureCube);
-    another_shader.setUniform("myTextureSampler", 0);
+    texture_shader.setUniform("myTextureSampler", 0);
 
-    *pvm = (pers * view * cubeTransformOne.calculateTransformationMatrix());
+    pv = pers * view;
 
-    another_shader.setUniform("pvm", pvm);
+    pvm = (pv * cubeTransformOne.calculateTransformationMatrix());
+
+    texture_shader.setUniform("pvm", &pvm);
     meshes[0]->drawStuff();
 
-    *pvm = (pers * view * cubeTransformTwo.calculateTransformationMatrix());
+    pvm = (pv * cubeTransformTwo.calculateTransformationMatrix());
 
-    another_shader.setUniform("pvm", pvm);
+    texture_shader.setUniform("pvm", &pvm);
     meshes[0]->drawStuff();
 
-    *pvm = (pers * view * cubeTransformThree.calculateTransformationMatrix());
+    pvm = (pv * cubeTransformThree.calculateTransformationMatrix());
 
-    another_shader.setUniform("pvm", pvm);
+    texture_shader.setUniform("pvm", &pvm);
     meshes[0]->drawStuff();
 
-    *pvm = (pers * view * cubeTransformFour.calculateTransformationMatrix());
+    pvm = (pv * cubeTransformFour.calculateTransformationMatrix());
 
-    another_shader.setUniform("pvm", pvm);
+    texture_shader.setUniform("pvm", &pvm);
     meshes[0]->drawStuff();
 
     glActiveTexture(GL_TEXTURE0);
@@ -339,39 +312,29 @@ void renderScene(void)
 
     mat4 trans = sunTransform.calculateTransformationMatrix();
 
-    *pvm = ((pers * view * trans) * model_two);
+    pvm = ((pv * trans) * model_two);
 
-    another_shader.setUniform("pvm", pvm);
+    texture_shader.setUniform("pvm", &pvm);
     meshes[1]->drawStuff();
 
     model_two[3][2] = sin(mover) * 10;
     model_two[3][0] = cos(mover) * 10;
 
-    *pvm = (pers * view);
+    glUseProgram(light_shader.getProgramIndex());
 
-    shader.setUniform("pvm", pvm);
+    pvm = (pv);
+    light_shader.setUniform("PVM", &pvm);
+    light_shader.setUniform("M", &model_two);
+    light_shader.setUniform("V", &view);
+    light_shader.setUniform("LightPosition_worldspace", &light_pos);
 
-    // send matrices to uniform buffer
-    // render VAO
-    /*
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, 0);
-    */
-    glUseProgram(shader.getProgramIndex());
-
-    glUseProgram(jet_another_shader.getProgramIndex());
-
-    jet_another_shader.setUniform("PVM", pvm);
-    jet_another_shader.setUniform("M", &model_two);
-    jet_another_shader.setUniform("V", &view);
-    mover += 0.0001f;
-    jet_another_shader.setUniform("LightPosition_worldspace", &light_pos);
-    glBindVertexArray(another_vao);
-    glDrawArrays(GL_TRIANGLES, 0, another_facecount * 3);
+    glBindVertexArray(plain_vao);
+    glDrawArrays(GL_TRIANGLES, 0, plain_facecount * 3);
 
     glutPostRedisplay();
-    //swap buffers
     glutSwapBuffers();
+
+    mover += 0.01f;
 }
 
 void mouseWheel(int wheel, int direction, int x, int y)
@@ -443,8 +406,6 @@ int main(int argc, char **argv)
     //	Init GLEW
     glewExperimental = GL_TRUE;
     glewInit();
-    textureCube = loadBMP_custom("test1.bmp");
-    textureSphere = loadBMP_custom("sun.bmp");
 
     printf("Vendor: %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
