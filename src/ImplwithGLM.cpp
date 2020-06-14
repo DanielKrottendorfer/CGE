@@ -20,8 +20,9 @@
 #include "vsShaderLib.h"
 #include "shaderDemo.h"
 
-VSShaderLib texture_shader;
-VSShaderLib light_shader;
+#include "Noise2d.hpp"
+
+VSShaderLib color_light_shader, texture_light_shader;
 
 // Camera Position
 float camX, camY, camZ;
@@ -37,19 +38,21 @@ float r = 5.25f;
 long myTime, timebase = 0, frame = 0;
 char s[32];
 
-glm::mat4 pvm, pv, pers, view, model;
+glm::mat4 pvm, pv, pers, view;
 
 GLuint cube_vao;
 GLuint plain_vao;
 
 int plain_facecount;
 
-glm::vec3 light_pos = vec3(10.0, 8.0, 11.0);
+glm::vec3 light_center = vec3(10.0, 8.0, 11.0);
+float light_radius = 5.0;
 
 // mesh vector for many meshes
 std::vector<Mesh *> meshes;
 
 TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree, cubeTransformFour, sunTransform;
+TransformationData treeTransforms[10];
 
 GLuint textureCube, textureSphere;
 
@@ -166,38 +169,31 @@ void processMouseMotion(int xx, int yy)
 GLuint setupShaders()
 {
 
-    texture_shader.init();
-    texture_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/another_color.vert");
-    texture_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/another_color.frag");
+    texture_light_shader.init();
+    texture_light_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardTextureShading.vert");
+    texture_light_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardTextureShading.frag");
 
     // set semantics for the shader variables
-    texture_shader.setProgramOutput(0, "outputF");
-    texture_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "position");
-    texture_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "normal");
-    texture_shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "uvs");
+    texture_light_shader.setProgramOutput(0, "outputF");
+    texture_light_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
+    texture_light_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
+    texture_light_shader.setVertexAttribName(VSShaderLib::TEXTURE_COORD_ATTRIB, "vertexUV");
 
-    texture_shader.prepareProgram();
+    texture_light_shader.prepareProgram();
 
-    texture_shader.setUniform("another_pvm", &pvm);
-
-    light_shader.init();
-    light_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardShading.vert");
-    light_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardShading.frag");
+    color_light_shader.init();
+    color_light_shader.loadShader(VSShaderLib::VERTEX_SHADER, "./src/shaders/StandardColorShading.vert");
+    color_light_shader.loadShader(VSShaderLib::FRAGMENT_SHADER, "./src/shaders/StandardColorShading.frag");
 
     // set semantics for the shader variables
-    light_shader.setProgramOutput(0, "outputF");
-    light_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
-    light_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
-    light_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "vertexColor");
+    color_light_shader.setProgramOutput(0, "outputF");
+    color_light_shader.setVertexAttribName(VSShaderLib::VERTEX_COORD_ATTRIB, "vertexPosition_modelspace");
+    color_light_shader.setVertexAttribName(VSShaderLib::NORMAL_ATTRIB, "vertexNormal_modelspace");
+    color_light_shader.setVertexAttribName(VSShaderLib::VERTEX_ATTRIB1, "vertexColor");
 
-    light_shader.prepareProgram();
+    color_light_shader.prepareProgram();
 
-    if (light_shader.isProgramValid())
-    {
-        std::cout << "#####################" << light_shader.getProgramIndex() << std::endl;
-    }
-
-    return (light_shader.isProgramValid());
+    return (color_light_shader.isProgramValid());
 }
 
 void initModels(const char *path)
@@ -233,6 +229,17 @@ void initOpenGL()
 
     textureCube = loadBMP_custom("bakedimag.bmp");
     textureSphere = loadBMP_custom("sun.bmp");
+
+    for (int i = 0; i < 10; i++)
+    {
+        TransformationData td = TransformationData();
+        td.scale *= 0.1;
+        float x = (float)i;
+        float z = (float)i;
+        float y = instance.noise(x / 20.0, z / 20.0);
+        td.position = vec3(x, y, z);
+        treeTransforms[i] = td;
+    }
 }
 
 void renderScene(void)
@@ -240,62 +247,61 @@ void renderScene(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
     // load identity matrices
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureSphere);
 
+    vec3 light_pos = light_center;
+    float x = sin(mover) * light_radius;
+    float z = cos(mover) * light_radius;
+    light_pos.x += x;
+    light_pos.z += z;
+
+    sunTransform.position = light_pos;
+    sunTransform.position.x -= 1.0;
+    sunTransform.position.z -= 1.0;
+    mat4 model = sunTransform.calculateTransformationMatrix();
+    pv = pers * view;
+    pvm = pv * model;
+
+    texture_light_shader.setUniform("PVM", &pvm);
+    texture_light_shader.setUniform("M", &model);
+    texture_light_shader.setUniform("V", &view);
+    texture_light_shader.setUniform("LightPosition_worldspace", &light_pos);
+    meshes[1]->drawStuff();
+
+    glUseProgram(color_light_shader.getProgramIndex());
+
+    mat4 m = mat4(1.0);
+
+    pvm = pv;
+    color_light_shader.setUniform("PVM", &pvm);
+    color_light_shader.setUniform("M", &m);
+    color_light_shader.setUniform("V", &view);
+    color_light_shader.setUniform("LightPosition_worldspace", &light_pos);
+
+    glBindVertexArray(plain_vao);
+    glDrawArrays(GL_TRIANGLES, 0, plain_facecount * 3);
     // use our shader
-    glUseProgram(texture_shader.getProgramIndex());
+    glUseProgram(texture_light_shader.getProgramIndex());
 
     // draws the mesh
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureCube);
-    texture_shader.setUniform("myTextureSampler", 0);
+    texture_light_shader.setUniform("myTextureSampler", 0);
 
     pv = pers * view;
 
-    pvm = (pv * cubeTransformOne.calculateTransformationMatrix());
+    for (int i = 0; i < 10; i++)
+    {
+        mat4 model = treeTransforms[i].calculateTransformationMatrix();
+        pvm = (pv * model);
 
-    texture_shader.setUniform("pvm", &pvm);
-    meshes[0]->drawStuff();
-
-    pvm = (pv * cubeTransformTwo.calculateTransformationMatrix());
-
-    texture_shader.setUniform("pvm", &pvm);
-    meshes[0]->drawStuff();
-
-    pvm = (pv * cubeTransformThree.calculateTransformationMatrix());
-
-    texture_shader.setUniform("pvm", &pvm);
-    meshes[0]->drawStuff();
-
-    pvm = (pv * cubeTransformFour.calculateTransformationMatrix());
-
-    texture_shader.setUniform("pvm", &pvm);
-    meshes[0]->drawStuff();
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureSphere);
-    model_two[3][2] = sin(mover) * 20;
-    model_two[3][0] = cos(mover) * 20;
-
-    mat4 trans = sunTransform.calculateTransformationMatrix();
-
-    pvm = ((pv * trans) * model_two);
-
-    texture_shader.setUniform("pvm", &pvm);
-    meshes[1]->drawStuff();
-
-    model_two[3][2] = sin(mover) * 10;
-    model_two[3][0] = cos(mover) * 10;
-
-    glUseProgram(light_shader.getProgramIndex());
-
-    pvm = (pv);
-    light_shader.setUniform("PVM", &pvm);
-    light_shader.setUniform("M", &model_two);
-    light_shader.setUniform("V", &view);
-    light_shader.setUniform("LightPosition_worldspace", &light_pos);
-
-    glBindVertexArray(plain_vao);
-    glDrawArrays(GL_TRIANGLES, 0, plain_facecount * 3);
+        texture_light_shader.setUniform("PVM", &pvm);
+        texture_light_shader.setUniform("M", &model);
+        texture_light_shader.setUniform("V", &view);
+        texture_light_shader.setUniform("LightPosition_worldspace", &light_pos);
+        meshes[0]->drawStuff();
+    }
 
     glutPostRedisplay();
     glutSwapBuffers();
@@ -327,23 +333,6 @@ void mouseWheel(int wheel, int direction, int x, int y)
 
 int main(int argc, char **argv)
 {
-    model = mat4(1.0);
-    cubeTransformOne.angle = (0.0f);
-    cubeTransformOne.position = vec3(8.f, 0.f, 1.f);
-    cubeTransformOne.scale *= 0.1;
-
-    cubeTransformTwo.angle = (0.f);
-    cubeTransformTwo.position = vec3(1.f, 0.f, 8.f);
-
-    cubeTransformThree.angle = (0.f);
-    cubeTransformThree.position = vec3(8.f, 0.f, 8.f);
-
-    cubeTransformFour.angle = (1.568f);
-    cubeTransformFour.position = vec3(1.f, 0.f, 1.f);
-
-    sunTransform.angle = (3.f);
-    sunTransform.position = vec3(10.f, 8.f, 11.f);
-
     //  GLUT initialization
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);

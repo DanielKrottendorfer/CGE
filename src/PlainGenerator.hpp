@@ -22,7 +22,6 @@ vec4 *generate3dPlain(float width, float height, int columns, int rows)
     {
         float tx = ((float)(i % columns)) / ((float)columns - 1);
         float tz = ((float)(i / columns)) / ((float)rows - 1);
-        std::cout << tx << " " << tz << std::endl;
         plain[i] = vec4(width * tx, instance.noise(tx, tz), height * tz, 1.0);
     }
     return plain;

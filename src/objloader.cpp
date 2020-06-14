@@ -67,7 +67,7 @@ int loadOBJ(
 		{
 			glm::vec4 normal;
 			fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-			normal.w = 1.0;
+			normal.w = 0.0;
 			temp_normals.push_back(normal);
 		}
 		else if (strcmp(lineHeader, "f") == 0)
