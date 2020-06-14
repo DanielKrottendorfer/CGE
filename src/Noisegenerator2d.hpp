@@ -3,6 +3,8 @@
 #include <math.h>
 #include <iostream>
 
+#ifndef NOISEGENERATOR2D
+#define NOISEGENERATOR2D
 class Noisegenerator2d
 {
 private:
@@ -99,3 +101,4 @@ float Noisegenerator2d::perlin(float x, float y)
     value = lerp(ix0, ix1, sy);
     return value;
 }
+#endif

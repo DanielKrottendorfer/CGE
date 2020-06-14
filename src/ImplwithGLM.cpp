@@ -38,7 +38,6 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 glm::mat4 pvm, pv, pers, view, model;
-glm::mat4 *another_pvm = new glm::mat4();
 
 GLuint cube_vao;
 GLuint plain_vao;
@@ -230,42 +229,9 @@ void initOpenGL()
     glEnable(GL_MULTISAMPLE);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    // create the VAO
-    glGenVertexArrays(1, &cube_vao);
-    glBindVertexArray(cube_vao);
-
-    // create buffers for our vertex data
-    GLuint buffers[4];
-    glGenBuffers(4, buffers);
-
-    //vertex coordinates buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(VSShaderLib::VERTEX_COORD_ATTRIB);
-    glVertexAttribPointer(VSShaderLib::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
-
-    //texture coordinates buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(VSShaderLib::TEXTURE_COORD_ATTRIB);
-    glVertexAttribPointer(VSShaderLib::TEXTURE_COORD_ATTRIB, 2, GL_FLOAT, 0, 0, 0);
-
-    //normals buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(normals), normals, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(VSShaderLib::NORMAL_ATTRIB);
-    glVertexAttribPointer(VSShaderLib::NORMAL_ATTRIB, 3, GL_FLOAT, 0, 0, 0);
-
-    //index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[3]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(faceIndex), faceIndex, GL_STATIC_DRAW);
-
-    // unbind the VAO
-    glBindVertexArray(0);
-
     plain_facecount = generateHills(&plain_vao);
 
-    textureCube = loadBMP_custom("test1.bmp");
+    textureCube = loadBMP_custom("bakedimag.bmp");
     textureSphere = loadBMP_custom("sun.bmp");
 }
 
@@ -364,6 +330,7 @@ int main(int argc, char **argv)
     model = mat4(1.0);
     cubeTransformOne.angle = (0.0f);
     cubeTransformOne.position = vec3(8.f, 0.f, 1.f);
+    cubeTransformOne.scale *= 0.1;
 
     cubeTransformTwo.angle = (0.f);
     cubeTransformTwo.position = vec3(1.f, 0.f, 8.f);
@@ -415,10 +382,9 @@ int main(int argc, char **argv)
     if (!setupShaders())
         return (1);
 
-    initModels("cube.obj");
+    initModels("NatureFreePack1.obj");
     initModels("sphere.obj");
     initOpenGL();
-
     //initVSL();
 
     //  GLUT main loop

@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include <GL/glew.h>
-#include <GL/freeglut.h>
 
 GLuint loadBMP_custom(const char *imagepath)
 {
@@ -43,7 +42,6 @@ GLuint loadBMP_custom(const char *imagepath)
 		fclose(file);
 		return 0;
 	}
-	printf("oh boi VVVVVVVVVVVVVVVVVVO\n");
 	// Make sure this is a 24bpp file
 	if (*(int *)&(header[0x1E]) != 0)
 	{
@@ -78,7 +76,7 @@ GLuint loadBMP_custom(const char *imagepath)
 
 	// Everything is in memory now, the file can be closed.
 	fclose(file);
-	printf("oh boi DDDDDDDDDDDDDDDDD\n");
+
 	// Create one OpenGL texture
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -87,12 +85,11 @@ GLuint loadBMP_custom(const char *imagepath)
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	// Give the image to OpenGL
-
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
 
 	// OpenGL has now copied the data. Free our own version
 	delete[] data;
-	printf("oh boi OOOOOOOOOOOOOOOOO\n");
+
 	// Poor filtering, or ...
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -103,9 +100,7 @@ GLuint loadBMP_custom(const char *imagepath)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	// ... which requires mipmaps. Generate them automatically.
-	printf("oh boi WWWWWWWWWWWWWWWWWWWW\n");
 	glGenerateMipmap(GL_TEXTURE_2D);
-	printf("oh boi OOOOOOOOOOOOOOOOO\n");
 	// Return the ID of the texture we just created
 	return textureID;
 }
