@@ -25,13 +25,19 @@
 VSShaderLib color_light_shader, texture_light_shader;
 
 // Camera Position
-float camX, camY, camZ;
+glm::vec3 cam = vec3(0.f);
+glm::vec3 direction = vec3(0.f);
+
+mat3 rotationmatrixControl;
+glm::vec3 rotationaxes = vec3(0.f, 1.0, 0.f);
+float angle = 3.14f / 2;
+glm::vec3 left, right;
 
 // Mouse Tracking Variables
 int startX, startY, tracking = 0;
 
 // Camera Spherical Coordinates
-float alpha = -143.0f, beta = 28.0f;
+float alpha = -312.0f, beta = 32.0f;
 float r = 5.25f;
 
 // Frame counting and FPS computation
@@ -120,10 +126,36 @@ void processKeys(unsigned char key, int xx, int yy)
     case 'c':
         printf("Camera Spherical Coordinates (%f, %f, %f)\n", alpha, beta, r);
         break;
-    }
 
-    //  uncomment this if not using an idle func
-    //	glutPostRedisplay();
+    case 'w':
+        cam.z += direction.z * 0.05f;
+        cam.x += direction.x * 0.05f;
+        cam.y -= direction.y * 0.05f;
+        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        break;
+    case 'a':
+        rotationmatrixControl = glm::rotate(angle, rotationaxes);
+        left = rotationmatrixControl * direction;
+        cam.z += left.z * 0.05f;
+        cam.x += left.x * 0.05f;
+        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        break;
+    case 's':
+        cam.z -= direction.z * 0.05f;
+        cam.x -= direction.x * 0.05f;
+        cam.y += direction.y * 0.05f;
+        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        break;
+    case 'd':
+        rotationmatrixControl = glm::rotate(angle * 3, rotationaxes);
+        right = rotationmatrixControl * direction;
+        cam.z += right.z * 0.05f;
+        cam.x += right.x * 0.05f;
+        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        break;
+    }
+    // uncomment this if not using an idle func
+    // glutPostRedisplay();
 }
 
 void processMouseMotion(int xx, int yy)
@@ -153,17 +185,17 @@ void processMouseMotion(int xx, int yy)
     else if (tracking == 2)
     {
 
-        alphaAux = alpha;
-        betaAux = beta;
+        alphaAux = alpha + deltaX;
+        betaAux = beta + deltaY;
         rAux = r + (deltaY * 0.01f);
         if (rAux < 0.1f)
             rAux = 0.1f;
     }
 
-    camX = rAux * sin(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
-    camZ = rAux * cos(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
-    camY = rAux * sin(betaAux * 3.14f / 180.0f);
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    direction.x = rAux * sin(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
+    direction.z = rAux * cos(alphaAux * 3.14f / 180.0f) * cos(betaAux * 3.14f / 180.0f);
+    direction.y = rAux * sin(betaAux * 3.14f / 180.0f);
+    view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0f));
 
     //  uncomment this if not using an idle func
     //	glutPostRedisplay();
@@ -217,10 +249,10 @@ void initModels(const char *path)
 void initOpenGL()
 {
     // set the camera position based on its spherical coordinates
-    camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    camY = r * sin(beta * 3.14f / 180.0f);
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    cam.x = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    cam.z = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    cam.y = r * sin(beta * 3.14f / 180.0f);
+    view = glm::lookAt(cam, glm::vec3(cam.x + cam.x, 0.0f, cam.z + cam.z), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // some GL settings
     glEnable(GL_DEPTH_TEST);
@@ -355,11 +387,11 @@ void mouseWheel(int wheel, int direction, int x, int y)
     if (r < 0.1f)
         r = 0.1f;
 
-    camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    camY = r * sin(beta * 3.14f / 180.0f);
+    cam.x = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    cam.z = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+    cam.y = r * sin(beta * 3.14f / 180.0f);
 
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(cam, glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     //  uncomment this if not using an idle func
     //	glutPostRedisplay();
