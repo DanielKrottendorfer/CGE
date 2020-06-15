@@ -28,10 +28,12 @@ VSShaderLib color_light_shader, texture_light_shader;
 glm::vec3 cam = vec3(0.f);
 glm::vec3 direction = vec3(0.f);
 
+// Control
 mat3 rotationmatrixControl;
 glm::vec3 rotationaxes = vec3(0.f, 1.0, 0.f);
 float angle = 3.14f / 2;
 glm::vec3 left, right;
+bool forward, backward, goleft, goright = false;
 
 // Mouse Tracking Variables
 int startX, startY, tracking = 0;
@@ -114,7 +116,7 @@ void processMouseButtons(int button, int state, int xx, int yy)
     }
 }
 
-void processKeys(unsigned char key, int xx, int yy)
+void processKeysUp(unsigned char key, int xx, int yy)
 {
     switch (key)
     {
@@ -128,30 +130,46 @@ void processKeys(unsigned char key, int xx, int yy)
         break;
 
     case 'w':
-        cam.z += direction.z * 0.05f;
-        cam.x += direction.x * 0.05f;
-        cam.y -= direction.y * 0.05f;
-        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        forward = false;
         break;
     case 'a':
-        rotationmatrixControl = glm::rotate(angle, rotationaxes);
-        left = rotationmatrixControl * direction;
-        cam.z += left.z * 0.05f;
-        cam.x += left.x * 0.05f;
-        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        goleft = false;
         break;
     case 's':
-        cam.z -= direction.z * 0.05f;
-        cam.x -= direction.x * 0.05f;
-        cam.y += direction.y * 0.05f;
-        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        backward = false;
         break;
     case 'd':
-        rotationmatrixControl = glm::rotate(angle * 3, rotationaxes);
-        right = rotationmatrixControl * direction;
-        cam.z += right.z * 0.05f;
-        cam.x += right.x * 0.05f;
-        view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+        goright = false;
+        break;
+    }
+    // uncomment this if not using an idle func
+    // glutPostRedisplay();
+}
+
+void processKeysDown(unsigned char key, int xx, int yy)
+{
+    switch (key)
+    {
+
+    case 27:
+        glutLeaveMainLoop();
+        break;
+
+    case 'c':
+        printf("Camera Spherical Coordinates (%f, %f, %f)\n", alpha, beta, r);
+        break;
+
+    case 'w':
+        forward = true;
+        break;
+    case 'a':
+        goleft = true;
+        break;
+    case 's':
+        backward = true;
+        break;
+    case 'd':
+        goright = true;
         break;
     }
     // uncomment this if not using an idle func
@@ -296,6 +314,36 @@ void initOpenGL()
 
 void renderScene(void)
 {
+    if (forward)
+    {
+      cam.z += direction.z * 0.005f;
+      cam.x += direction.x * 0.005f;
+      cam.y -= direction.y * 0.005f;
+      view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+    }
+    if (backward)
+    {
+      cam.z -= direction.z * 0.005f;
+      cam.x -= direction.x * 0.005f;
+      cam.y += direction.y * 0.005f;
+      view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+    }
+    if (goleft)
+    {
+      rotationmatrixControl = glm::rotate(angle, rotationaxes);
+      left = rotationmatrixControl * direction;
+      cam.z += left.z * 0.005f;
+      cam.x += left.x * 0.005f;
+      view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+    }
+    if (goright)
+    {
+      rotationmatrixControl = glm::rotate(angle * 3, rotationaxes);
+      right = rotationmatrixControl * direction;
+      cam.z += right.z * 0.005f;
+      cam.x += right.x * 0.005f;
+      view = glm::lookAt(cam, glm::vec3(cam.x + direction.x, cam.y - direction.y, cam.z + direction.z), glm::vec3(0.0f, 1.0f, 0.0));
+    }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
     // load identity matrices
@@ -380,23 +428,6 @@ void renderScene(void)
     mover += 0.005f;
 }
 
-void mouseWheel(int wheel, int direction, int x, int y)
-{
-
-    r += direction * 0.1f;
-    if (r < 0.1f)
-        r = 0.1f;
-
-    cam.x = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    cam.z = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-    cam.y = r * sin(beta * 3.14f / 180.0f);
-
-    view = glm::lookAt(cam, glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    //  uncomment this if not using an idle func
-    //	glutPostRedisplay();
-}
-
 // ------------------------------------------------------------
 //
 // Main function
@@ -422,11 +453,11 @@ int main(int argc, char **argv)
     glutIdleFunc(renderScene);
 
     //	Mouse and Keyboard Callbacks
-    glutKeyboardFunc(processKeys);
+    glutKeyboardFunc(processKeysDown);
+    glutKeyboardUpFunc(processKeysUp);
     glutMouseFunc(processMouseButtons);
     glutMotionFunc(processMouseMotion);
 
-    glutMouseWheelFunc(mouseWheel);
     //	return from main loop
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
