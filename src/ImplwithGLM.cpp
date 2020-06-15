@@ -242,12 +242,11 @@ void initOpenGL()
             float z = ((float)j) / 30.0;
             float y = instance.noise(x, z);
 
-            std::cout << y << std::endl;
-
             if (y < 0.3)
             {
                 TransformationData td = TransformationData();
                 td.scale *= 0.05;
+                td.angle = (float)i * j;
                 td.position = vec3(x * 20.0, y, z * 20.0);
                 BaumTD.push_back(td);
             }
@@ -255,16 +254,10 @@ void initOpenGL()
             {
                 TransformationData td = TransformationData();
                 td.scale *= 0.05;
+                td.angle = (float)i * j;
                 td.position = vec3(x * 20.0, y, z * 20.0);
                 TanneTD.push_back(td);
             }
-
-            /*
-            TransformationData td = TransformationData();
-            td.scale *= 0.1;
-            td.position = vec3(x, y, z);
-            treeTransforms[i] = td;
-            */
         }
     }
 }
