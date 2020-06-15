@@ -85,7 +85,6 @@ GLuint generateHills(GLuint *vao)
     int vertC = faceC * 3;
 
     vec4 *plain = generate3dPlain(width, height, columns, rows);
-    vec4 *colors = new vec4[columns * rows];
     int *triangles = generateTriangles(columns, rows);
 
     vec4 *verts = new vec4[vertC];

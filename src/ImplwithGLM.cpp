@@ -54,7 +54,10 @@ std::vector<Mesh *> meshes;
 TransformationData cubeTransformOne, cubeTransformTwo, cubeTransformThree, cubeTransformFour, sunTransform;
 TransformationData treeTransforms[10];
 
-GLuint textureCube, textureSphere;
+std::vector<TransformationData> TanneTD;
+std::vector<TransformationData> BaumTD;
+
+GLuint textureBaum, textureTanne, textureSphere;
 
 float mover = 0.0f;
 
@@ -227,18 +230,42 @@ void initOpenGL()
 
     plain_facecount = generateHills(&plain_vao);
 
-    textureCube = loadBMP_custom("bakedimag.bmp");
+    textureTanne = loadBMP_custom("Tanne.bmp");
+    textureBaum = loadBMP_custom("Baum.bmp");
     textureSphere = loadBMP_custom("sun.bmp");
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 1; i < 30; i++)
     {
-        TransformationData td = TransformationData();
-        td.scale *= 0.1;
-        float x = (float)i;
-        float z = (float)i;
-        float y = instance.noise(x / 20.0, z / 20.0);
-        td.position = vec3(x, y, z);
-        treeTransforms[i] = td;
+        for (int j = 1; j < 30; j++)
+        {
+            float x = ((float)i) / 30.0;
+            float z = ((float)j) / 30.0;
+            float y = instance.noise(x, z);
+
+            std::cout << y << std::endl;
+
+            if (y < 0.3)
+            {
+                TransformationData td = TransformationData();
+                td.scale *= 0.05;
+                td.position = vec3(x * 20.0, y, z * 20.0);
+                BaumTD.push_back(td);
+            }
+            else if (y < 0.6)
+            {
+                TransformationData td = TransformationData();
+                td.scale *= 0.05;
+                td.position = vec3(x * 20.0, y, z * 20.0);
+                TanneTD.push_back(td);
+            }
+
+            /*
+            TransformationData td = TransformationData();
+            td.scale *= 0.1;
+            td.position = vec3(x, y, z);
+            treeTransforms[i] = td;
+            */
+        }
     }
 }
 
@@ -257,6 +284,7 @@ void renderScene(void)
     light_pos.z += z;
 
     sunTransform.position = light_pos;
+    sunTransform.position.y -= 1.0;
     sunTransform.position.x -= 1.0;
     sunTransform.position.z -= 1.0;
     mat4 model = sunTransform.calculateTransformationMatrix();
@@ -286,14 +314,32 @@ void renderScene(void)
 
     // draws the mesh
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureCube);
+    glBindTexture(GL_TEXTURE_2D, textureBaum);
     texture_light_shader.setUniform("myTextureSampler", 0);
 
     pv = pers * view;
 
-    for (int i = 0; i < 10; i++)
+    for (auto &td : BaumTD)
     {
-        mat4 model = treeTransforms[i].calculateTransformationMatrix();
+
+        mat4 model = td.calculateTransformationMatrix();
+        pvm = (pv * model);
+
+        texture_light_shader.setUniform("PVM", &pvm);
+        texture_light_shader.setUniform("M", &model);
+        texture_light_shader.setUniform("V", &view);
+        texture_light_shader.setUniform("LightPosition_worldspace", &light_pos);
+        meshes[2]->drawStuff();
+    }
+
+    // draws the mesh
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureTanne);
+    texture_light_shader.setUniform("myTextureSampler", 0);
+    for (auto &td : TanneTD)
+    {
+
+        mat4 model = td.calculateTransformationMatrix();
         pvm = (pv * model);
 
         texture_light_shader.setUniform("PVM", &pvm);
@@ -306,7 +352,7 @@ void renderScene(void)
     glutPostRedisplay();
     glutSwapBuffers();
 
-    mover += 0.01f;
+    mover += 0.005f;
 }
 
 void mouseWheel(int wheel, int direction, int x, int y)
@@ -371,8 +417,10 @@ int main(int argc, char **argv)
     if (!setupShaders())
         return (1);
 
-    initModels("NatureFreePack1.obj");
+    initModels("Tanne.obj");
     initModels("sphere.obj");
+    initModels("Baum.obj");
+
     initOpenGL();
     //initVSL();
 
