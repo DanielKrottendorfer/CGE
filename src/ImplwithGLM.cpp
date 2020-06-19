@@ -101,17 +101,8 @@ void processMouseButtons(int button, int state, int xx, int yy)
     //stop tracking the mouse
     else if (state == GLUT_UP)
     {
-        if (tracking == 1)
-        {
-            alpha -= (xx - startX);
-            beta += (yy - startY);
-        }
-        else if (tracking == 2)
-        {
-            r += (yy - startY) * 0.01f;
-            if (r < 0.1f)
-                r = 0.1f;
-        }
+        alpha -= (xx - startX);
+        beta += (yy - startY);
         tracking = 0;
     }
 }
@@ -445,7 +436,7 @@ int main(int argc, char **argv)
 
     glutInitWindowPosition(100, 100);
     glutInitWindowSize(800, 800);
-    glutCreateWindow("Lighthouse3D - Simple Shader Demo");
+    glutCreateWindow("Krottendorf Hochwald Demo");
 
     //  Callback Registration
     glutDisplayFunc(renderScene);
